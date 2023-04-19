@@ -44,29 +44,18 @@ function Find-Folders {
 
 
 function getLtsVersion() {
-    $nodejsOrg = "https://nodejs.org/dist"
-    $nodejsHtml = "$Env:TMP\nodejs.html"
+    $nodejsOrg = "https://nodejs.org/dist/index.json"
     $foundVersion = "v18.16.0"
-
     Try {
-        Invoke-WebRequest $nodejsOrg -OutFile $nodejsHtml
-        $M = Select-String -CaseSensitive -Path $nodejsHtml -Pattern 'Download[ *](.+)[ *]LTS'
-
-        $G = $M.Matches.Groups[1]
-        if ($G.Success) {
-            $v = $G.Value
-            if (-not ($v.StartsWith("v"))) {
-                $v = "v" + $v
-            }
-            $foundVersion = $v
+        $nodeInfo = Invoke-WebRequest -Uri $nodejsOrg | ConvertFrom-Json
+        if ($nodeInfo.Count -gt 1) {
+            $foundVersion = ($nodeInfo | select -Property version, lts | where-object -Property 'lts' -NotLike "*False*" | select -First 1).version | Out-String -Stream
         }
     }
     Catch {
     }
-
     return $foundVersion
 }
-
 $DefaultNodeVersion = getLtsVersion
 
 function Get-NodeJS($version) {
